@@ -230,7 +230,6 @@ class FlowBoxWindow(Gtk.Window):
 if __name__ == "__main__":
     fobs = []
 
-    # TODO Delete
     with open("data.json", "rt") as fh:
         data = json.load(fh)
 
@@ -238,14 +237,6 @@ if __name__ == "__main__":
             alist = [a for a in item["aspects"]]
             fobs.append(Fobject(item["category"],
                             item["name"], alist))
-
-    #fobs.append(Fobject("pc", "Moonchild Sundance", ["Kleinkrimineller", "Aufbrausend", "Gute Händchen für Geschäfte"]))
-    #fobs.append(Fobject("pc", "Hope Glory Water", ["Zum Überleben geschaffener Monsterjäger", "Heimatlos/Wer bin ich", "Ich kann das allein"]))
-    #fobs.append(Fobject("pc", "Catey Parsley", ["Auf Samtpfoten unterwegs", "Ich weiß (alles)", "Zur rechten Zeit am rechten Ort"]))
-    #fobs.append(Fobject("pc", "Allan Pickerton", ["Großvater Hilly Billy Werwolf", "Landei", "Durch harte Arbeit zum Erfolg"]))
-    #fobs.append(Fobject("pc", "Jay (Jean LaFayette Boogaville)", ["Gutmütiger Voodoo Priester", "Zu spät", "Lass dir helfen !"]))
-    #fobs.append(Fobject("pc", "Buba Duncan", ["Der muskulöse Partylöwe", "Sprunghafter Nigger", "Ich hab da was für dich"]))
-    #print(fobs)
 
     win = FlowBoxWindow("Fate aspect manager", fobs)
     win.connect("delete-event", Gtk.main_quit)
