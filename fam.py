@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, GLib, Gio
 
 import json
+import sys
 
 
 catlist = ["pc", "npc", "location", "situation", "object"]
@@ -24,6 +25,47 @@ categories = {"pc": {"color": Gdk.RGBA(0, 0.8, 0, 1),
               "location": {"color": Gdk.RGBA(0.6, 1, 0.4, 1),
                            "name": "Location",
                            "short": "L"}}
+
+# This would typically be its own file
+MENU_XML = """
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <menu id="app-menu">
+    <section>
+      <item>
+        <attribute name="action">app.open</attribute>
+        <attribute name="label" translatable="yes">Open</attribute>
+      </item>
+    </section>
+
+    <section>
+      <item>
+        <attribute name="action">app.save</attribute>
+        <attribute name="label" translatable="yes">Save</attribute>
+      </item>
+    </section>
+
+    <section>
+      <item>
+        <attribute name="action">app.saveas</attribute>
+        <attribute name="label" translatable="yes">Save As...</attribute>
+      </item>
+    </section>
+
+    <section>
+      <item>
+        <attribute name="action">app.about</attribute>
+        <attribute name="label" translatable="yes">_About</attribute>
+      </item>
+      <item>
+        <attribute name="action">app.quit</attribute>
+        <attribute name="label" translatable="yes">_Quit</attribute>
+        <attribute name="accel">&lt;Primary&gt;q</attribute>
+    </item>
+    </section>
+  </menu>
+</interface>
+"""
 
 
 class Aspect():
@@ -171,16 +213,17 @@ class FobBoxWithData(Gtk.Box):
         return self.fob.category
 
 
-class FlowBoxWindow(Gtk.Window):
+class FlowBoxWindow(Gtk.ApplicationWindow):
 
-    def __init__(self, title, fobs):
-        Gtk.Window.__init__(self, title=title)
+    def __init__(self, fobs, *args, **kwargs):
+        # TODO proper App Window like in the tutorial
+        super().__init__(*args, **kwargs)
         self.fobs = fobs
         self.set_border_width(10)
         self.set_default_size(600, 550)
 
-        header = Gtk.HeaderBar(title="Fate Aspect Manager")
-        header.set_subtitle("Manage aspect usage")
+        header = Gtk.HeaderBar()
+        #header.set_subtitle("Manage aspect usage")
         header.props.show_close_button = True
 
         for key in catlist:
@@ -203,49 +246,185 @@ class FlowBoxWindow(Gtk.Window):
             c1 = child_1.get_children()[0]
             c2 = child_2.get_children()[0]
             if c1.get_category() != c2.get_category():
-                return c1.get_category() < c2.get_category
+                return catlist.index(c1.get_category()) > catlist.index(c2.get_category())
             return c1.get_value() > c2.get_value()
 
         self.flowbox.set_sort_func(flow_sort_func)
 
-        self.create_flowbox()
+        self.fill_flowbox()
 
         scrolled.add(self.flowbox)
 
         self.add(scrolled)
         self.show_all()
 
+    #def update_flowbox(self):
+
+
+
     def add_fob(self, button, category):
+        """Adds a new and empty fob"""
         newfob = Fobject(category, "", [])
         self.fobs.append(newfob)
         self.flowbox.add(FobBoxWithData(newfob, self.flowbox))
         self.show_all()
 
-    def create_flowbox(self):
+    def fill_flowbox(self, fobs=None):
+        if fobs:
+            self.fobs = fobs
         for fob in self.fobs:
+            print(fob)
             fobbox = FobBoxWithData(fob, self.flowbox)
             self.flowbox.add(fobbox)
+        self.show_all()
+
+    def empty_flowbox(self):
+        for child in self.flowbox.get_children():
+            self.flowbox.remove(child)
+
+
+class Application(Gtk.Application):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, application_id="org.sickstuff.FateAspectManager",
+                         flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
+                         **kwargs)
+        self.window = None
+
+        self.add_main_option("test", ord("t"), GLib.OptionFlags.NONE,
+                             GLib.OptionArg.NONE, "Command line test", None)
+
+        self.fobs = []
+        #self.load()
+
+    def do_startup(self):
+        Gtk.Application.do_startup(self)
+
+        action = Gio.SimpleAction.new("open", None)
+        action.connect("activate", self.on_open_file)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("save", None)
+        action.connect("activate", self.on_save_file)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("saveas", None)
+        action.connect("activate", self.on_save_as_file)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("about", None)
+        action.connect("activate", self.on_about)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("quit", None)
+        action.connect("activate", self.on_quit)
+        self.add_action(action)
+
+        builder = Gtk.Builder.new_from_string(MENU_XML, -1)
+        self.set_app_menu(builder.get_object("app-menu"))
+
+    def do_activate(self):
+        # We only allow a single window and raise any existing ones
+        if not self.window:
+            # Windows are associated with the application
+            # when the last one is closed the application shuts down
+            self.window = FlowBoxWindow(fobs=self.fobs, application=self, title="Fate Aspect Manager")
+
+        self.window.present()
+
+    def do_command_line(self, command_line):
+        options = command_line.get_options_dict()
+
+        if options.contains("test"):
+            # This is printed on the main instance
+            print("Test argument recieved")
+
+        self.activate()
+        return 0
+
+    def load(self, filename="data.fam"):
+        self.fobs = []
+        with open(filename, "rt") as fh:
+            data = json.load(fh)
+
+            for item in data:
+                alist = [a for a in item["aspects"]]
+                self.fobs.append(Fobject(item["category"],
+                                         item["name"], alist))
+
+    def on_open_file(self, action, param):
+        def add_filters(dialog):
+            filter_fam = Gtk.FileFilter()
+            filter_fam.set_name('FAM data')
+            filter_fam.add_pattern("*.fam")
+            dialog.add_filter(filter_fam)
+
+            filter_any = Gtk.FileFilter()
+            filter_any.set_name("Any files")
+            filter_any.add_pattern("*")
+            dialog.add_filter(filter_any)
+
+
+        dialog = Gtk.FileChooserDialog("Open File",
+                                         self.window,
+                                         Gtk.FileChooserAction.OPEN,
+                                         (Gtk.STOCK_CANCEL,
+                                          Gtk.ResponseType.CANCEL,
+                                          Gtk.STOCK_OPEN,
+                                          Gtk.ResponseType.OK))
+        add_filters(dialog)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            print("Open clicked")
+            print("File selected: " + dialog.get_filename())
+            path = dialog.get_filename()
+            self.window.empty_flowbox()
+            self.load(path)
+            self.window.fill_flowbox(self.fobs)
+            dialog.destroy()
+        elif response == Gtk.ResponseType.CANCEL:
+            print("Cancel clicked")
+            dialog.destroy()
+        #TODO implement
+
+    def on_save_file(self, action, param):
+        print("Save")
+        #TODO implement
+
+    def on_save_as_file(self, action, param):
+        print("Save as")
+        #TODO implement
+
+    def on_about(self, action, param):
+        about_dialog = Gtk.AboutDialog(transient_for=self.window, modal=True)
+        about_dialog.set_copyright("By Thorsten Sick")
+        about_dialog.set_website("https://github.com/Thorsten-Sick/FateAspectManager")
+        about_dialog.set_license_type(Gtk.License.GPL_3_0)
+        about_dialog.present()
+
+    def on_quit(self, action, param):
+        data = []
+        for fob in self.fobs:
+            data.append({"category": fob.category, "name": fob.name, "aspects": fob.get_aspects()})
+        print(data)
+        with open("data.fam", "wt") as fh:
+            json.dump(data, fh, indent=4)
+
+        # TODO support save dialog
+        # TODO: Cleanup. lots of it....code is ugly thanks to experiments
+        # TODO: Deletion of items (maybe just hide and be able to get back)
+        self.quit()
 
 
 if __name__ == "__main__":
-    fobs = []
 
-    with open("data.json", "rt") as fh:
-        data = json.load(fh)
+    app = Application()
+    app.run(sys.argv)
 
-        for item in data:
-            alist = [a for a in item["aspects"]]
-            fobs.append(Fobject(item["category"],
-                            item["name"], alist))
 
-    win = FlowBoxWindow("Fate aspect manager", fobs)
-    win.connect("delete-event", Gtk.main_quit)
-    win.show_all()
-    Gtk.main()
 
-    data = []
-    for fob in fobs:
-        data.append({"category": fob.category, "name": fob.name, "aspects": fob.get_aspects()})
-    print(data)
-    with open("data.json", "wt") as fh:
-        json.dump(data, fh, indent=4)
+
+    #win.connect("delete-event", Gtk.main_quit)
+    #win.show_all()
+    #Gtk.main()
