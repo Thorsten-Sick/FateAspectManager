@@ -223,7 +223,8 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         self.set_default_size(600, 550)
 
         header = Gtk.HeaderBar()
-        #header.set_subtitle("Manage aspect usage")
+        header.set_title("Fate Aspect Manager")
+        header.set_subtitle("Manage aspect usage")
         header.props.show_close_button = True
 
         for key in catlist:
@@ -295,7 +296,7 @@ class Application(Gtk.Application):
                              GLib.OptionArg.NONE, "Command line test", None)
 
         self.fobs = []
-        #self.load()
+        self.path = None
 
     def do_startup(self):
         Gtk.Application.do_startup(self)
@@ -342,8 +343,10 @@ class Application(Gtk.Application):
         self.activate()
         return 0
 
-    def load(self, filename="data.fam"):
+    def load(self, filename=None):
         self.fobs = []
+        if filename is None:
+            filename = "default.fam"
         with open(filename, "rt") as fh:
             data = json.load(fh)
 
@@ -352,49 +355,70 @@ class Application(Gtk.Application):
                 self.fobs.append(Fobject(item["category"],
                                          item["name"], alist))
 
+    def save(self, filename=None):
+        data = []
+        if filename is None:
+            filename = "default.fam"
+        for fob in self.fobs:
+            data.append({"category": fob.category,
+                         "name": fob.name,
+                         "aspects": fob.get_aspects()})
+        print(data)
+        with open(filename, "wt") as fh:
+            json.dump(data, fh, indent=4)
+
+    @classmethod
+    def add_filters(cls, dialog):
+        filter_fam = Gtk.FileFilter()
+        filter_fam.set_name('FAM data')
+        filter_fam.add_pattern("*.fam")
+        dialog.add_filter(filter_fam)
+
+        filter_any = Gtk.FileFilter()
+        filter_any.set_name("Any files")
+        filter_any.add_pattern("*")
+        dialog.add_filter(filter_any)
+
     def on_open_file(self, action, param):
-        def add_filters(dialog):
-            filter_fam = Gtk.FileFilter()
-            filter_fam.set_name('FAM data')
-            filter_fam.add_pattern("*.fam")
-            dialog.add_filter(filter_fam)
-
-            filter_any = Gtk.FileFilter()
-            filter_any.set_name("Any files")
-            filter_any.add_pattern("*")
-            dialog.add_filter(filter_any)
-
-
         dialog = Gtk.FileChooserDialog("Open File",
-                                         self.window,
-                                         Gtk.FileChooserAction.OPEN,
-                                         (Gtk.STOCK_CANCEL,
-                                          Gtk.ResponseType.CANCEL,
-                                          Gtk.STOCK_OPEN,
-                                          Gtk.ResponseType.OK))
-        add_filters(dialog)
+                                       self.window,
+                                       Gtk.FileChooserAction.OPEN,
+                                       (Gtk.STOCK_CANCEL,
+                                        Gtk.ResponseType.CANCEL,
+                                        Gtk.STOCK_OPEN,
+                                        Gtk.ResponseType.OK))
+        self.add_filters(dialog)
 
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            print("Open clicked")
-            print("File selected: " + dialog.get_filename())
-            path = dialog.get_filename()
+            self.path = dialog.get_filename()
             self.window.empty_flowbox()
-            self.load(path)
+            self.load(self.path)
             self.window.fill_flowbox(self.fobs)
             dialog.destroy()
         elif response == Gtk.ResponseType.CANCEL:
-            print("Cancel clicked")
             dialog.destroy()
-        #TODO implement
 
     def on_save_file(self, action, param):
-        print("Save")
-        #TODO implement
+        self.save(self.path)
 
     def on_save_as_file(self, action, param):
-        print("Save as")
-        #TODO implement
+        dialog = Gtk.FileChooserDialog("Save File",
+                                       self.window,
+                                       Gtk.FileChooserAction.SAVE,
+                                       (Gtk.STOCK_CANCEL,
+                                        Gtk.ResponseType.CANCEL,
+                                        Gtk.STOCK_OPEN,
+                                        Gtk.ResponseType.OK))
+        self.add_filters(dialog)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            self.path = dialog.get_filename()
+            self.save(self.path)
+            dialog.destroy()
+        elif response == Gtk.ResponseType.CANCEL:
+            dialog.destroy()
 
     def on_about(self, action, param):
         about_dialog = Gtk.AboutDialog(transient_for=self.window, modal=True)
@@ -404,27 +428,11 @@ class Application(Gtk.Application):
         about_dialog.present()
 
     def on_quit(self, action, param):
-        data = []
-        for fob in self.fobs:
-            data.append({"category": fob.category, "name": fob.name, "aspects": fob.get_aspects()})
-        print(data)
-        with open("data.fam", "wt") as fh:
-            json.dump(data, fh, indent=4)
-
-        # TODO support save dialog
         # TODO: Cleanup. lots of it....code is ugly thanks to experiments
         # TODO: Deletion of items (maybe just hide and be able to get back)
         self.quit()
 
 
 if __name__ == "__main__":
-
     app = Application()
     app.run(sys.argv)
-
-
-
-
-    #win.connect("delete-event", Gtk.main_quit)
-    #win.show_all()
-    #Gtk.main()
