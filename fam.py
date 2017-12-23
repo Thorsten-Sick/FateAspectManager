@@ -254,12 +254,14 @@ class FobBoxWithData(Gtk.Box):
             "Do you want to delete this object ?")
         response = dialog.run()
         if response == Gtk.ResponseType.YES:
+            dialog.destroy()
             self.window.remove_fob(self)
         elif response == Gtk.ResponseType.NO:
             #print("QUESTION dialog closed by clicking NO button")
+            dialog.destroy()
             pass
 
-        dialog.destroy()
+
 
     def setLabel(self):
         """Set the count label"""
@@ -352,7 +354,9 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         """
         if remove_data:
             self.fcol.remove_fob(child.fob)
-        self.flowbox.remove(child)
+        for boxes in self.flowbox.get_children():
+            if boxes.get_children()[0] == child:
+                self.flowbox.remove(boxes)
 
 
 class Application(Gtk.Application):
