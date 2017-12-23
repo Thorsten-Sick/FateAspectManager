@@ -67,16 +67,6 @@ MENU_XML = """
 </interface>
 """
 
-
-class Aspect():
-    """A single aspect"""
-    def __init__(self, desc):
-        self.desc = desc
-
-    def __str__(self):
-        return self.desc
-
-
 class Fobject():
     """A fate object"""
 
@@ -119,6 +109,53 @@ class Fobject():
         print(name)
         self.name = name
 
+#todo fate object collection class. Insert this here.
+
+
+class FCollection():
+    """Manage a collection of Fate objects"""
+    def __init__(self):
+        self.collection = []
+
+    def addfob(self, fob):
+        """Add a fob object to the collection"""
+        self.collection.append(fob)
+
+    def addfobs(self, fobs):
+        """Delete current collection and add all fobs"""
+        self.collection = []
+        for fob in fobs:
+            self.addfob(fob)
+
+    def clean(self):
+        """remove all objects"""
+        self.collection = []
+
+    def load(self, filename):
+        self.fobs = []
+        if filename is None:
+            filename = "default.fam"
+        with open(filename, "rt") as fh:
+            data = json.load(fh)
+
+            for item in data:
+                alist = [a for a in item["aspects"]]
+                self.collection.append(Fobject(item["category"],
+                                               item["name"], alist))
+
+    def save(self, filename):
+        """Store data into json format file"""
+        data = []
+        for fob in self.collection:
+            data.append({"category": fob.category,
+                         "name": fob.name,
+                         "aspects": fob.get_aspects()})
+        print(data)
+        with open(filename, "wt") as fh:
+            json.dump(data, fh, indent=4)
+
+    def get_fobs(self):
+        return self.collection
 
 ############ GUI stuff
 
@@ -137,13 +174,14 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
         return self.aspect + ": " + str(self.get_value())
 
     def on_click(self, button):
+        """Increase the count of an aspect"""
         self.fobj.up_aspect(self.aspect)
         self.btn.set_label(self.get_label_text())
         self.listbox.invalidate_sort()
         self.onUpdate()
 
     def get_value(self):
-        """Get value for this list box entry"""
+        """Get value for this list box entry which is the count on the aspect"""
 
         return self.fobj.get_aspect_count(self.aspect)
 
@@ -215,10 +253,10 @@ class FobBoxWithData(Gtk.Box):
 
 class FlowBoxWindow(Gtk.ApplicationWindow):
 
-    def __init__(self, fobs, *args, **kwargs):
+    def __init__(self, fcol, *args, **kwargs):
         # TODO proper App Window like in the tutorial
         super().__init__(*args, **kwargs)
-        self.fobs = fobs
+        self.fcol = fcol
         self.set_border_width(10)
         self.set_default_size(600, 550)
 
@@ -266,14 +304,14 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
     def add_fob(self, button, category):
         """Adds a new and empty fob"""
         newfob = Fobject(category, "", [])
-        self.fobs.append(newfob)
+        self.fcol.addfob(newfob)
         self.flowbox.add(FobBoxWithData(newfob, self.flowbox))
         self.show_all()
 
-    def fill_flowbox(self, fobs=None):
-        if fobs:
-            self.fobs = fobs
-        for fob in self.fobs:
+    def fill_flowbox(self, fcol=None):
+        if fcol:
+            self.fcol = fcol
+        for fob in self.fcol.get_fobs():
             print(fob)
             fobbox = FobBoxWithData(fob, self.flowbox)
             self.flowbox.add(fobbox)
@@ -295,7 +333,8 @@ class Application(Gtk.Application):
         self.add_main_option("test", ord("t"), GLib.OptionFlags.NONE,
                              GLib.OptionArg.NONE, "Command line test", None)
 
-        self.fobs = []
+        self.fcol = FCollection()
+        #self.fobs = []
         self.path = None
 
     def do_startup(self):
@@ -329,7 +368,7 @@ class Application(Gtk.Application):
         if not self.window:
             # Windows are associated with the application
             # when the last one is closed the application shuts down
-            self.window = FlowBoxWindow(fobs=self.fobs, application=self, title="Fate Aspect Manager")
+            self.window = FlowBoxWindow(fcol=self.fcol, application=self, title="Fate Aspect Manager")
 
         self.window.present()
 
@@ -344,28 +383,14 @@ class Application(Gtk.Application):
         return 0
 
     def load(self, filename=None):
-        self.fobs = []
         if filename is None:
             filename = "default.fam"
-        with open(filename, "rt") as fh:
-            data = json.load(fh)
-
-            for item in data:
-                alist = [a for a in item["aspects"]]
-                self.fobs.append(Fobject(item["category"],
-                                         item["name"], alist))
+        self.fcol.load(filename)
 
     def save(self, filename=None):
-        data = []
         if filename is None:
             filename = "default.fam"
-        for fob in self.fobs:
-            data.append({"category": fob.category,
-                         "name": fob.name,
-                         "aspects": fob.get_aspects()})
-        print(data)
-        with open(filename, "wt") as fh:
-            json.dump(data, fh, indent=4)
+        self.fcol.save(filename)
 
     @classmethod
     def add_filters(cls, dialog):
@@ -394,7 +419,7 @@ class Application(Gtk.Application):
             self.path = dialog.get_filename()
             self.window.empty_flowbox()
             self.load(self.path)
-            self.window.fill_flowbox(self.fobs)
+            self.window.fill_flowbox(fcol = self.fcol)
             dialog.destroy()
         elif response == Gtk.ResponseType.CANCEL:
             dialog.destroy()
