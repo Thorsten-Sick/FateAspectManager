@@ -40,6 +40,13 @@ MENU_XML = """
 
     <section>
       <item>
+        <attribute name="action">app.openandadd</attribute>
+        <attribute name="label" translatable="yes">Open and add</attribute>
+      </item>
+    </section>
+
+    <section>
+      <item>
         <attribute name="action">app.save</attribute>
         <attribute name="label" translatable="yes">Save</attribute>
       </item>
@@ -331,14 +338,21 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         self.flowbox.add(FobBoxWithData(self, newfob, self.flowbox))
         self.show_all()
 
+    def fob_already_displayed(self, fob):
+        for flowbox in self.flowbox.get_children():
+            if flowbox.get_children()[0].fob == fob:
+                return True
+        return False
+
     def fill_flowbox(self, fcol=None):
         """Add all the Fobs in the collection to the flowbox"""
         if fcol:
             self.fcol = fcol
         for fob in self.fcol.get_fobs():
             print(fob)
-            fobbox = FobBoxWithData(self, fob, self.flowbox)
-            self.flowbox.add(fobbox)
+            if not self.fob_already_displayed(fob):
+                fobbox = FobBoxWithData(self, fob, self.flowbox)
+                self.flowbox.add(fobbox)
         self.show_all()
 
     def empty_flowbox(self):
@@ -379,6 +393,10 @@ class Application(Gtk.Application):
 
         action = Gio.SimpleAction.new("open", None)
         action.connect("activate", self.on_open_file)
+        self.add_action(action)
+
+        action = Gio.SimpleAction.new("openandadd", None)
+        action.connect("activate", self.on_open_and_add_file)
         self.add_action(action)
 
         action = Gio.SimpleAction.new("save", None)
@@ -456,7 +474,27 @@ class Application(Gtk.Application):
             self.path = dialog.get_filename()
             self.window.empty_flowbox()
             self.load(self.path)
-            self.window.fill_flowbox(fcol = self.fcol)
+            self.window.fill_flowbox(fcol=self.fcol)
+            dialog.destroy()
+        elif response == Gtk.ResponseType.CANCEL:
+            dialog.destroy()
+
+    def on_open_and_add_file(self, action, param):
+        dialog = Gtk.FileChooserDialog("Open File",
+                                       self.window,
+                                       Gtk.FileChooserAction.OPEN,
+                                       (Gtk.STOCK_CANCEL,
+                                        Gtk.ResponseType.CANCEL,
+                                        Gtk.STOCK_OPEN,
+                                        Gtk.ResponseType.OK))
+        self.add_filters(dialog)
+
+        response = dialog.run()
+        if response == Gtk.ResponseType.OK:
+            path = dialog.get_filename()
+            self.path = None
+            self.load(path)
+            self.window.fill_flowbox(fcol=self.fcol)
             dialog.destroy()
         elif response == Gtk.ResponseType.CANCEL:
             dialog.destroy()
@@ -491,6 +529,7 @@ class Application(Gtk.Application):
 
     def on_quit(self, action, param):
         # TODO: Cleanup. lots of it....code is ugly thanks to experiments
+        # TODO: Commandline: Open several files on top of each other
         self.quit()
 
 
