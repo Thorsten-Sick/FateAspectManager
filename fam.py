@@ -109,9 +109,6 @@ class Fobject():
         print(name)
         self.name = name
 
-#todo fate object collection class. Insert this here.
-
-
 class FCollection():
     """Manage a collection of Fate objects"""
     def __init__(self):
@@ -126,6 +123,13 @@ class FCollection():
         self.collection = []
         for fob in fobs:
             self.addfob(fob)
+
+    def remove_fob(self, fob):
+        """Remove fob from data
+
+        fob: fob to remove
+        """
+        self.collection.remove(fob)
 
     def clean(self):
         """remove all objects"""
@@ -187,9 +191,11 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
 
 
 class FobBoxWithData(Gtk.Box):
-    def __init__(self, fob, flowbox):
+    """Draw a Fobbox"""
+    def __init__(self, window, fob, flowbox):
         super(Gtk.Box, self).__init__(orientation=Gtk.Orientation.VERTICAL, spacing=6)
 
+        self.window = window
         self.flowbox = flowbox
         self.fob = fob
         self.label = Gtk.Label()
@@ -203,10 +209,13 @@ class FobBoxWithData(Gtk.Box):
         self.entry = Gtk.Entry()
         self.entry.connect("activate", self.name_changed)
         self.entry.connect("key-release-event", self.name_changed)
+        self.remove_button = Gtk.Button("-")
+        self.remove_button.connect("clicked", self.remove_clicked)
         self.entry.set_text(self.fob.name)
         self.box.pack_start(self.shortl, False, True, 0)
         self.box.pack_start(self.entry, False, True, 0)
         self.box.pack_start(self.label, False, True, 0)
+        self.box.pack_start(self.remove_button, False, True, 0)
 
         self.listbox = Gtk.ListBox()
         for aspect in self.fob.get_aspects():
@@ -230,13 +239,30 @@ class FobBoxWithData(Gtk.Box):
         self.fob.set_name(editbox.get_text())
 
     def aspect_added(self, editbox):
+        """Event called when an aspect was added"""
         aspect = editbox.get_text()
         self.fob.add_aspect(aspect)
         self.listbox.add(ListBoxRowWithData(self.fob, aspect, self.listbox, self.onUpdate))
         editbox.set_text("")
         self.show_all()
 
+    def remove_clicked(self, thebutton):
+        """User clicked remove button"""
+        dialog = Gtk.MessageDialog(self.window, 0, Gtk.MessageType.QUESTION,
+            Gtk.ButtonsType.YES_NO, "Delete this Object from your world ?")
+        dialog.format_secondary_text(
+            "Do you want to delete this object ?")
+        response = dialog.run()
+        if response == Gtk.ResponseType.YES:
+            self.window.remove_fob(self)
+        elif response == Gtk.ResponseType.NO:
+            #print("QUESTION dialog closed by clicking NO button")
+            pass
+
+        dialog.destroy()
+
     def setLabel(self):
+        """Set the count label"""
         self.label.set_markup(str(self.fob.total()))
 
     def onUpdate(self):
@@ -254,7 +280,6 @@ class FobBoxWithData(Gtk.Box):
 class FlowBoxWindow(Gtk.ApplicationWindow):
 
     def __init__(self, fcol, *args, **kwargs):
-        # TODO proper App Window like in the tutorial
         super().__init__(*args, **kwargs)
         self.fcol = fcol
         self.set_border_width(10)
@@ -297,29 +322,37 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         self.add(scrolled)
         self.show_all()
 
-    #def update_flowbox(self):
-
-
-
     def add_fob(self, button, category):
         """Adds a new and empty fob"""
         newfob = Fobject(category, "", [])
         self.fcol.addfob(newfob)
-        self.flowbox.add(FobBoxWithData(newfob, self.flowbox))
+        self.flowbox.add(FobBoxWithData(self, newfob, self.flowbox))
         self.show_all()
 
     def fill_flowbox(self, fcol=None):
+        """Add all the Fobs in the collection to the flowbox"""
         if fcol:
             self.fcol = fcol
         for fob in self.fcol.get_fobs():
             print(fob)
-            fobbox = FobBoxWithData(fob, self.flowbox)
+            fobbox = FobBoxWithData(self, fob, self.flowbox)
             self.flowbox.add(fobbox)
         self.show_all()
 
     def empty_flowbox(self):
+        """Remove all children from the flowbox"""
         for child in self.flowbox.get_children():
             self.flowbox.remove(child)
+
+    def remove_fob(self, child, remove_data=True):
+        """Remove child from flowbox
+
+        child: child to remove
+        remove_data: Also remove data representation
+        """
+        if remove_data:
+            self.fcol.remove_fob(child.fob)
+        self.flowbox.remove(child)
 
 
 class Application(Gtk.Application):
@@ -454,7 +487,6 @@ class Application(Gtk.Application):
 
     def on_quit(self, action, param):
         # TODO: Cleanup. lots of it....code is ugly thanks to experiments
-        # TODO: Deletion of items (maybe just hide and be able to get back)
         self.quit()
 
 
