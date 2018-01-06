@@ -1,0 +1,90 @@
+# German translations for PACKAGE package.
+# Copyright (C) 2018 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Thorsten Sick <thorsten.sick@email.de>, 2018.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-01-06 16:39+0100\n"
+"PO-Revision-Date: 2018-01-06 16:39+0100\n"
+"Last-Translator: Thorsten Sick <thorsten.sick@email.de>\n"
+"Language-Team: German\n"
+"Language: de\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: fam.py:498
+msgid "By Thorsten Sick"
+msgstr "Von Thorsten Sick"
+
+#: fam.py:229
+msgid "Delete this Object from your world ?"
+msgstr "Dieses Objekt aus der Welt löschen ?"
+
+#: fam.py:231
+msgid "Do you want to delete this object ?"
+msgstr "Wollen Sie das Objekt löschen"
+
+#: fam.py:268 fam.py:399
+msgid "Fate Aspect Manager"
+msgstr "Fate Aspekt Manager"
+
+#: fam.py:43
+msgid "Location"
+msgstr "Ort"
+
+#: fam.py:269
+msgid "Manage aspect usage"
+msgstr "Aspekt Verwendung verwalten"
+
+#: fam.py:34
+msgid "NPC"
+msgstr "NSC"
+
+#: fam.py:40
+msgid "Object"
+msgstr "Objekt"
+
+#: ui/fam.glade:7
+msgid "Open"
+msgstr "Öffnen"
+
+#: fam.py:436 fam.py:456
+msgid "Open File"
+msgstr "Datei Öffnen"
+
+#: ui/fam.glade:14
+msgid "Open and add"
+msgstr "Öffnen und hinzufügen"
+
+#: fam.py:31
+msgid "PC"
+msgstr "SC"
+
+#: ui/fam.glade:21
+msgid "Save"
+msgstr "Speichern"
+
+#: ui/fam.glade:28
+msgid "Save As..."
+msgstr "Sppeichern als..."
+
+#: fam.py:479
+msgid "Save File"
+msgstr "Speichern"
+
+#: fam.py:37
+msgid "Situation"
+msgstr "Situation"
+
+#: ui/fam.glade:35
+msgid "_About"
+msgstr "Über"
+
+#: ui/fam.glade:39
+msgid "_Quit"
+msgstr "Beenden"

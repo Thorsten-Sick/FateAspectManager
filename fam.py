@@ -7,72 +7,44 @@ from gi.repository import Gtk, Gdk, GLib, Gio
 
 import json
 import sys
+import gettext
+import locale
+from os.path import abspath, dirname, join
 
+# Setup
 
+APP = 'fateaspectmanager'
+WHERE_AM_I = abspath(dirname(__file__))
+LOCALE_DIR = join(WHERE_AM_I, 'mo')
+
+gettext.bindtextdomain(APP, LOCALE_DIR)
+gettext.textdomain(APP)
+_ = gettext.gettext
+locale.setlocale(locale.LC_ALL, '')
+locale.bindtextdomain(APP, LOCALE_DIR)
+
+print(gettext.find(APP, LOCALE_DIR))
+print('Using locale directory: {}'.format(LOCALE_DIR))
+print(_("PC"))
+
+# Configs
 catlist = ["pc", "npc", "location", "situation", "object"]
 categories = {"pc": {"color": Gdk.RGBA(0, 0.8, 0, 1),
-                     "name": "PC",
+                     "name": _("PC"),
                      "short": "P"},
               "npc": {"color": Gdk.RGBA(0, 0, 0.9, 1),
-                      "name": "NPC",
+                      "name": _("NPC"),
                       "short": "N"},
               "situation": {"color": Gdk.RGBA(1, 0.2, 0.9, 1),
-                            "name": "Situation",
+                            "name": _("Situation"),
                             "short": "S"},
               "object": {"color": Gdk.RGBA(0.7, 0.7, 0.5, 1),
-                         "name": "Object",
+                         "name": _("Object"),
                          "short": "O"},
               "location": {"color": Gdk.RGBA(0.6, 1, 0.4, 1),
-                           "name": "Location",
+                           "name": _("Location"),
                            "short": "L"}}
 
-# This would typically be its own file
-MENU_XML = """
-<?xml version="1.0" encoding="UTF-8"?>
-<interface>
-  <menu id="app-menu">
-    <section>
-      <item>
-        <attribute name="action">app.open</attribute>
-        <attribute name="label" translatable="yes">Open</attribute>
-      </item>
-    </section>
-
-    <section>
-      <item>
-        <attribute name="action">app.openandadd</attribute>
-        <attribute name="label" translatable="yes">Open and add</attribute>
-      </item>
-    </section>
-
-    <section>
-      <item>
-        <attribute name="action">app.save</attribute>
-        <attribute name="label" translatable="yes">Save</attribute>
-      </item>
-    </section>
-
-    <section>
-      <item>
-        <attribute name="action">app.saveas</attribute>
-        <attribute name="label" translatable="yes">Save As...</attribute>
-      </item>
-    </section>
-
-    <section>
-      <item>
-        <attribute name="action">app.about</attribute>
-        <attribute name="label" translatable="yes">_About</attribute>
-      </item>
-      <item>
-        <attribute name="action">app.quit</attribute>
-        <attribute name="label" translatable="yes">_Quit</attribute>
-        <attribute name="accel">&lt;Primary&gt;q</attribute>
-    </item>
-    </section>
-  </menu>
-</interface>
-"""
 
 class Fobject():
     """A fate object"""
@@ -256,9 +228,9 @@ class FobBoxWithData(Gtk.Box):
     def remove_clicked(self, thebutton):
         """User clicked remove button"""
         dialog = Gtk.MessageDialog(self.window, 0, Gtk.MessageType.QUESTION,
-            Gtk.ButtonsType.YES_NO, "Delete this Object from your world ?")
+            Gtk.ButtonsType.YES_NO, _("Delete this Object from your world ?"))
         dialog.format_secondary_text(
-            "Do you want to delete this object ?")
+            _("Do you want to delete this object ?"))
         response = dialog.run()
         if response == Gtk.ResponseType.YES:
             dialog.destroy()
@@ -295,8 +267,8 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         self.set_default_size(600, 550)
 
         header = Gtk.HeaderBar()
-        header.set_title("Fate Aspect Manager")
-        header.set_subtitle("Manage aspect usage")
+        header.set_title(_("Fate Aspect Manager"))
+        header.set_subtitle(_("Manage aspect usage"))
         header.props.show_close_button = True
 
         for key in catlist:
@@ -415,15 +387,18 @@ class Application(Gtk.Application):
         action.connect("activate", self.on_quit)
         self.add_action(action)
 
-        builder = Gtk.Builder.new_from_string(MENU_XML, -1)
-        self.set_app_menu(builder.get_object("app-menu"))
+        self.builder = Gtk.Builder()
+        self.glade_file = join(WHERE_AM_I, "ui", "fam.glade")
+        self.builder.set_translation_domain(APP)
+        self.builder.add_from_file(self.glade_file)
+        self.set_app_menu(self.builder.get_object("app-menu"))
 
     def do_activate(self):
         # We only allow a single window and raise any existing ones
         if not self.window:
             # Windows are associated with the application
             # when the last one is closed the application shuts down
-            self.window = FlowBoxWindow(fcol=self.fcol, application=self, title="Fate Aspect Manager")
+            self.window = FlowBoxWindow(fcol=self.fcol, application=self, title=_("Fate Aspect Manager"))
 
         self.window.present()
 
@@ -460,7 +435,7 @@ class Application(Gtk.Application):
         dialog.add_filter(filter_any)
 
     def on_open_file(self, action, param):
-        dialog = Gtk.FileChooserDialog("Open File",
+        dialog = Gtk.FileChooserDialog(_("Open File"),
                                        self.window,
                                        Gtk.FileChooserAction.OPEN,
                                        (Gtk.STOCK_CANCEL,
@@ -480,7 +455,7 @@ class Application(Gtk.Application):
             dialog.destroy()
 
     def on_open_and_add_file(self, action, param):
-        dialog = Gtk.FileChooserDialog("Open File",
+        dialog = Gtk.FileChooserDialog(_("Open File"),
                                        self.window,
                                        Gtk.FileChooserAction.OPEN,
                                        (Gtk.STOCK_CANCEL,
@@ -503,7 +478,7 @@ class Application(Gtk.Application):
         self.save(self.path)
 
     def on_save_as_file(self, action, param):
-        dialog = Gtk.FileChooserDialog("Save File",
+        dialog = Gtk.FileChooserDialog(_("Save File"),
                                        self.window,
                                        Gtk.FileChooserAction.SAVE,
                                        (Gtk.STOCK_CANCEL,
@@ -522,7 +497,7 @@ class Application(Gtk.Application):
 
     def on_about(self, action, param):
         about_dialog = Gtk.AboutDialog(transient_for=self.window, modal=True)
-        about_dialog.set_copyright("By Thorsten Sick")
+        about_dialog.set_copyright(_("By Thorsten Sick"))
         about_dialog.set_website("https://github.com/Thorsten-Sick/FateAspectManager")
         about_dialog.set_license_type(Gtk.License.GPL_3_0)
         about_dialog.present()
@@ -530,9 +505,13 @@ class Application(Gtk.Application):
     def on_quit(self, action, param):
         # TODO: Cleanup. lots of it....code is ugly thanks to experiments
         # TODO: Commandline: Open several files on top of each other
+        # TODO: Extra large name tag for cards (currently: does not scale)
+        # TODO: Remember working dir to open from
+        # TODO: Open several files at once
         self.quit()
 
 
 if __name__ == "__main__":
+
     app = Application()
     app.run(sys.argv)
