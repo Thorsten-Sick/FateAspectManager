@@ -34,3 +34,6 @@ Workflow:
 * init new localisation files (msginit)
 * translate manually
 * generate .mo binary files (msgfmt)
+
+
+In the python code it needs *gettext* and *locale* (gettext for string replacement, locale for the GTK glade menu, for example)

@@ -443,13 +443,18 @@ class Application(Gtk.Application):
                                         Gtk.STOCK_OPEN,
                                         Gtk.ResponseType.OK))
         self.add_filters(dialog)
+        dialog.set_select_multiple(True)
 
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            self.path = dialog.get_filename()
             self.window.empty_flowbox()
-            self.load(self.path)
-            self.window.fill_flowbox(fcol=self.fcol)
+            paths = dialog.get_filenames()
+            for path in paths:
+                self.path = path
+                self.load(self.path)
+                self.window.fill_flowbox(fcol=self.fcol)
+            if len(paths) > 0:
+                self.path = None
             dialog.destroy()
         elif response == Gtk.ResponseType.CANCEL:
             dialog.destroy()
@@ -463,13 +468,15 @@ class Application(Gtk.Application):
                                         Gtk.STOCK_OPEN,
                                         Gtk.ResponseType.OK))
         self.add_filters(dialog)
+        dialog.set_select_multiple(True)
 
         response = dialog.run()
         if response == Gtk.ResponseType.OK:
-            path = dialog.get_filename()
-            self.path = None
-            self.load(path)
-            self.window.fill_flowbox(fcol=self.fcol)
+            paths = dialog.get_filenames()
+            for path in paths:
+                self.path = None
+                self.load(path)
+                self.window.fill_flowbox(fcol=self.fcol)
             dialog.destroy()
         elif response == Gtk.ResponseType.CANCEL:
             dialog.destroy()
@@ -504,10 +511,8 @@ class Application(Gtk.Application):
 
     def on_quit(self, action, param):
         # TODO: Cleanup. lots of it....code is ugly thanks to experiments
-        # TODO: Commandline: Open several files on top of each other
         # TODO: Extra large name tag for cards (currently: does not scale)
         # TODO: Remember working dir to open from
-        # TODO: Open several files at once
         self.quit()
 
 
