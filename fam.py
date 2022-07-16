@@ -272,8 +272,10 @@ class FlowBoxWindow(Gtk.ApplicationWindow):
         header.props.show_close_button = True
 
         for key in catlist:
-            b = Gtk.Button(categories[key]["name"])
+            b = Gtk.Button(label=categories[key]["name"])
             b.override_color(Gtk.StateType.NORMAL, categories[key]["color"])
+            # TODO: Use CSS: https://stackoverflow.com/questions/1706550/gtk-modifying-background-color-of-gtkbutton#41850551
+
             b.connect("clicked", self.add_fob, key)
             header.pack_start(b)
 
